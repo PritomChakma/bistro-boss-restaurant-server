@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
@@ -24,10 +24,26 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    const userCollection = client.db("bistroDB").collection("users");
     const menuCollection = client.db("bistroDB").collection("menu");
     const reviewCollection = client.db("bistroDB").collection("reviews");
     const cartCollection = client.db("bistroDB").collection("carts");
 
+// user collection
+app.post("/users",async ( req, res)=>{
+  const user = req.body
+  const query ={email: user.email}
+  const existUser =await userCollection.findOne(query)
+  if(existUser){
+    return res.send({message:"user already exist", insertedId: null})
+  }
+  const result = await userCollection.insertOne(user)
+  res.send(result )
+})
+
+
+
+    // menu collection
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
@@ -40,8 +56,8 @@ async function run() {
 
     // Cart collection
     app.get("/carts", async (req, res) => {
-      const email = req.query.email
-      const query ={email: email}
+      const email = req.query.email;
+      const query = { email: email };
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     });
@@ -51,6 +67,14 @@ async function run() {
       const result = await cartCollection.insertOne(cartItems);
       res.send(result);
     });
+
+    app.delete("/carts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query)
+      res.send(result)
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
